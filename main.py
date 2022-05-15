@@ -4,11 +4,10 @@ from gpiozero import LED
 import RPi.GPIO as GPIO
 import subprocess
 
-
 # Config
-moisture_threshold_lower = 100 # When to ask for water
-moisture_threshold_upper = 450 # When to say thank you
-escalation_delay = 5 * 100 # In seconds
+moisture_threshold_lower = 350 # When to ask for water
+moisture_threshold_upper = 500 # When to say thank you
+escalation_delay = 3600 # One hour (In seconds)
 
 # Pins
 moisture_sensor_pin = 5
@@ -39,7 +38,7 @@ def ask_for_water():
     print('Disgruntled!, level: ', disgruntlement)
 
     if disgruntlement == 1:
-        subprocess.call(["mpg123", "audio/Torst 1.mp3"])
+        subprocess.call(["mpg123", "audio/Torst 8.mp3"])
 
     if disgruntlement == 2:
         subprocess.call(["mpg123", "audio/Torst 2.mp3"])
@@ -60,7 +59,7 @@ def ask_for_water():
         subprocess.call(["mpg123", "audio/Torst 7.mp3"])
         
     if disgruntlement >= 8:
-        subprocess.call(["mpg123", "audio/Torst 6.mp3"])
+        subprocess.call(["mpg123", "audio/Torst 8.mp3"])
 
 def say_thank_you():
     subprocess.call(["mpg123", "audio/Takk 1.mp3"])
@@ -72,9 +71,11 @@ def say_thank_you2():
 
 while (1):
     print('Moisture: ', '{:.0f}'.format(moisture_sensor.value * 1023))
+    print(moisture_sensor.value)
     print('PIR: ', GPIO.input(pir_pin))
     print('Disgruntlement: ', disgruntlement)
     print('Last Notification: ', last_notification)
+    print('Next Notification: ', escalation_delay - (time.time() - last_notification))
     print('----------')
 
     if moisture_below_lower_threshold():
@@ -94,16 +95,14 @@ while (1):
         disgruntlement += 1
         ask_for_water()
         last_notification = time.time()
-
-    if disgruntlement < 4 and moisture_above_upper_threshold() and pir_active():
+        
+    if disgruntlement > 0 and disgruntlement < 4 and moisture_above_upper_threshold() and pir_active():
         say_thank_you()
         disgruntlement = 0
-        time.sleep(300)
               
     if disgruntlement >= 4 and moisture_above_upper_threshold() and pir_active():
         say_thank_you2()
         disgruntlement = 0
-        time.sleep(120)
         
     if pir_active():
         blue_led.on()
